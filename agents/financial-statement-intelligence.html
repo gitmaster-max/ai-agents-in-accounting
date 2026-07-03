@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Financial Statement Intelligence — Agent Instructions</title>
+<meta name="description" content="Agent specification for Financial Statement Intelligence: upload a raw trial balance and get department-by-department readiness perspectives — AP/AR through the financial statement close process to the CFO.">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <span class="kicker">Vijay Vittal</span>
+    <nav>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#agents">Agents</a>
+      <a href="../resume.html">Résumé</a>
+      <a href="https://github.com/gitmaster-max" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <section class="hero">
+    <div class="wrap">
+      <p class="eyebrow">Agent instructions · In development</p>
+      <h1>Financial Statement Intelligence</h1>
+      <p class="lede">
+        Upload a raw trial balance. The agent walks it through every accounting department that
+        has to sign off before financial statements can be prepared — Accounts Payable and
+        Receivable, through the financial statement close process, all the way to the CFO — and
+        tells you, department by department, how ready you actually are.
+      </p>
+    </div>
+  </section>
+
+  <section class="section alt">
+    <div class="wrap">
+      <h2>The idea</h2>
+      <p>
+        A trial balance is where financial statements begin — and where most close problems hide
+        in plain sight. Debit balances sitting in Accounts Payable. Clearing accounts that never
+        cleared. Suspense balances nobody owns. Accruals that should exist but don't.
+      </p>
+      <p>
+        In a real company, each of those problems belongs to a different department, and each
+        department sees the same trial balance completely differently. This agent recreates that
+        reality: it reads the raw TB, runs deterministic diagnostics for each department, then
+        writes each department's honest readiness assessment — ending with the view the CFO
+        needs before signing anything.
+      </p>
+      <p>
+        Like <a href="https://gitmaster-max.github.io/audit-perspectives/" target="_blank" rel="noopener">Audit
+        Perspectives</a>, it is a multi-stakeholder method. The difference: every perspective here
+        is grounded in numbers computed from the uploaded data — not persona role-play.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>How it works</h2>
+      <div class="stage-list">
+        <div class="stage">
+          <h3><span class="stage-num">1</span> Parse &amp; map</h3>
+          <p>
+            Ingest the raw trial balance (CSV or Excel: account number, account name, debit,
+            credit — messy headers tolerated). Normalize signs, verify the TB actually balances,
+            and map every account to a standard financial-statement structure (assets,
+            liabilities, equity, revenue, expenses) and to an owning department. Accounts that
+            can't be mapped are themselves a finding.
+          </p>
+        </div>
+        <div class="stage">
+          <h3><span class="stage-num">2</span> Diagnose, per department</h3>
+          <p>
+            Run deterministic checks for each department against its slice of the TB — contra
+            balances, stale suspense and clearing accounts, missing standard accruals and
+            allowances, sign anomalies, unmapped accounts. Every check produces evidence:
+            account, balance, and why it matters. If a comparative TB is provided, add flux
+            analysis on top.
+          </p>
+        </div>
+        <div class="stage">
+          <h3><span class="stage-num">3</span> Perspectives</h3>
+          <p>
+            Each department speaks in turn — AP, AR, General Accounting &amp; Close, Treasury,
+            Tax, then the Controller — assessing its own readiness from its own computed
+            findings: what's clean, what blocks the close, what it needs from other departments.
+          </p>
+        </div>
+        <div class="stage">
+          <h3><span class="stage-num">4</span> Scorecard &amp; CFO view</h3>
+          <p>
+            Everything rolls up into a readiness scorecard — red / amber / green per department
+            with the top blockers — and a CFO-level executive summary: can we prepare financial
+            statements from this trial balance, and if not, what has to happen first, in what
+            order.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section alt">
+    <div class="wrap">
+      <h2>The perspectives</h2>
+      <p>Seven voices, end to end — each grounded in its own diagnostics from the uploaded TB.</p>
+      <div class="persona-grid">
+        <div class="persona">
+          <h3>Accounts Payable</h3>
+          <p>Debit balances in AP, missing standard accruals (utilities, professional fees), stale GRNI / goods-received-not-invoiced balances, vendor advances mixed into payables.</p>
+        </div>
+        <div class="persona">
+          <h3>Accounts Receivable</h3>
+          <p>Credit balances in AR, missing or implausible allowance for doubtful accounts, unapplied cash and customer overpayments, contract asset/liability consistency.</p>
+        </div>
+        <div class="persona">
+          <h3>General Accounting &amp; Close (FSCP)</h3>
+          <p>Suspense and clearing accounts with balances, accounts that map to no FS line, TB out of balance, round-number balances that smell like plugs, intercompany that doesn't eliminate.</p>
+        </div>
+        <div class="persona">
+          <h3>Treasury &amp; Cash</h3>
+          <p>Negative cash (book overdrafts vs. errors), unreconciled bank clearing accounts, restricted cash presentation, debt principal vs. accrued interest split.</p>
+        </div>
+        <div class="persona">
+          <h3>Tax</h3>
+          <p>Current vs. deferred tax balance presence and sign, tax payable plausibility against pre-tax income in the TB, missing provision accounts entirely.</p>
+        </div>
+        <div class="persona">
+          <h3>Controller — Financial Reporting</h3>
+          <p>Cross-department view: does equity roll? Do the anomalies cluster somewhere? Classification readiness for the balance sheet and income statement, flux vs. prior period if provided.</p>
+        </div>
+        <div class="persona">
+          <h3>CFO</h3>
+          <p>The executive synthesis: overall readiness verdict, the ordered list of blockers, key ratios and what they'll look like to the board, the bank, and the auditors.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>The output</h2>
+      <p>A single readiness report, headed by the scorecard:</p>
+      <div class="table-scroll">
+        <table class="scorecard">
+          <thead>
+            <tr><th>Department</th><th>Readiness</th><th>Top blocker</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Accounts Payable</td><td><span class="rag rag-amber">Amber</span></td><td>3 vendor accounts carry debit balances totaling 412K</td></tr>
+            <tr><td>Accounts Receivable</td><td><span class="rag rag-green">Green</span></td><td>Allowance present and plausible; minor unapplied cash</td></tr>
+            <tr><td>General Accounting &amp; Close</td><td><span class="rag rag-red">Red</span></td><td>Suspense account 19990 holds an unexplained 1.2M</td></tr>
+            <tr><td>Treasury &amp; Cash</td><td><span class="rag rag-green">Green</span></td><td>—</td></tr>
+            <tr><td>Tax</td><td><span class="rag rag-amber">Amber</span></td><td>No deferred tax accounts found in the TB</td></tr>
+            <tr><td>Controller</td><td><span class="rag rag-amber">Amber</span></td><td>Equity roll-forward gap of 86K vs. prior period</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">Illustrative output on a synthetic trial balance.</p>
+      <p>
+        Below the scorecard: each department's full perspective with the evidence behind every
+        finding, then the CFO summary with the remediation sequence — what must be fixed before
+        the statements can be prepared, and what can be noted and monitored.
+      </p>
+    </div>
+  </section>
+
+  <section class="section alt">
+    <div class="wrap">
+      <h2>Agent instructions</h2>
+      <p>
+        The working specification below is what the agent runs on. It is the contract between
+        the deterministic pipeline and the language model.
+      </p>
+      <div class="spec-block">
+<pre>
+You are Financial Statement Intelligence, an agent that assesses whether a
+raw trial balance is ready for financial statement preparation, from the
+perspective of every accounting department involved in the close.
+
+INPUT
+- Required: one trial balance (CSV/XLSX) with at minimum account number or
+  name and a debit/credit or signed balance column. Tolerate messy headers.
+- Optional: a comparative (prior-period) trial balance.
+- Never invent data. If the file cannot be parsed, or the TB does not
+  balance, report that first and stop short of any perspective that would
+  require guessing.
+
+STAGE 1 — PARSE & MAP
+1. Normalize the TB: one row per account, signed balance, debits positive.
+2. Verify sum of balances = 0. Report any imbalance to the cent.
+3. Map each account to (a) an FS caption — asset / liability / equity /
+   revenue / expense, with subcategory — and (b) an owning department:
+   AP, AR, General Accounting & Close, Treasury, Tax, Controller.
+4. List every account you could not map. Unmapped accounts are findings,
+   not omissions.
+
+STAGE 2 — DIAGNOSE (deterministic; every finding cites account + amount)
+- AP: debit balances in payables; missing standard accrual accounts;
+  stale GRNI/clearing balances; vendor advances classified as payables.
+- AR: credit balances in receivables; allowance for doubtful accounts
+  missing or implausible relative to gross AR; unapplied cash.
+- General Accounting & Close: suspense/clearing accounts with nonzero
+  balances; accounts mapped to no FS line; round-number balances at or
+  above a materiality heuristic (suspected plugs); intercompany pairs
+  that do not net to zero.
+- Treasury: negative cash balances (classify: overdraft vs. error);
+  unreconciled bank clearing; restricted cash mixed with operating cash;
+  debt vs. accrued-interest presentation.
+- Tax: presence and sign of current and deferred tax accounts; payable
+  plausibility vs. pre-tax income computed from the TB.
+- Controller (cross-cutting): equity roll-forward continuity if a prior
+  TB is given; flux analysis on captions moving > 20% and > materiality;
+  clustering of anomalies by department.
+
+STAGE 3 — PERSPECTIVES
+Write each department's readiness assessment in its own professional
+voice, grounded ONLY in that department's Stage 2 findings. Each
+perspective: (1) what is clean, (2) what blocks the close, (3) what it
+needs from other departments. No finding may appear in a perspective
+without a Stage 2 diagnostic behind it.
+
+STAGE 4 — SCORECARD & CFO SUMMARY
+- Rate each department Red / Amber / Green:
+  Red = at least one blocker that makes FS preparation unsound;
+  Amber = issues requiring adjustment or explanation before sign-off;
+  Green = no findings above the materiality heuristic.
+- CFO summary: overall verdict (ready / ready with adjustments / not
+  ready), the ordered remediation sequence, and 3–5 headline metrics
+  (liquidity, leverage, margin) with a note on how they will read to
+  the board, lenders, and auditors.
+
+GUARDRAILS
+- Synthetic or user-owned data only; refuse client-confidential data.
+- This is preparation support, not an audit opinion — say so.
+- Prefer "the data does not show X" over speculation, always.
+</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>Status &amp; v1 scope</h2>
+      <p>
+        The agent is in development. Version 1 ships with: CSV/Excel trial balance upload,
+        standard chart-of-accounts mapping, the seven perspectives above, and the readiness
+        scorecard report. Deliberately out of scope for v1: multi-entity consolidation,
+        GL transaction-level detail, and disclosure checklist generation — those come after
+        the core method proves itself.
+      </p>
+      <div class="hero-actions">
+        <a class="btn" href="../index.html#agents">Back to all agents</a>
+        <a class="btn" href="https://github.com/gitmaster-max" target="_blank" rel="noopener">Watch on GitHub</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>Built by Vijay Vittal — AI &amp; Agents in Accounting and Auditing.</p>
+    <p><a href="https://github.com/gitmaster-max" target="_blank" rel="noopener">github.com/gitmaster-max</a></p>
+  </div>
+</footer>
+
+</body>
+</html>

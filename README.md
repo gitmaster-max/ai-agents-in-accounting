@@ -9,6 +9,7 @@ Portfolio site for the AI agents Vijay Vittal builds for the accounting and audi
 | Agent | What it does | Links |
 |---|---|---|
 | **Audit Perspectives** | STORM-style, multi-stakeholder method for audit questions — runs a question through every layer of an engagement team plus external stakeholders, maps conflicts, and synthesizes a recommendation. | [Site](https://gitmaster-max.github.io/audit-perspectives/) · [Repo](https://github.com/gitmaster-max/audit-perspectives) |
+| **Financial Statement Intelligence** *(in development)* | Upload a raw trial balance, get department-by-department readiness perspectives for FS preparation — AP/AR through the close process to the CFO — grounded in deterministic diagnostics and rolled up into a RAG scorecard. | [Agent instructions](https://gitmaster-max.github.io/ai-agents-in-accounting/agents/financial-statement-intelligence.html) |
 
 ## Adding a new agent
 
@@ -20,5 +21,7 @@ Portfolio site for the AI agents Vijay Vittal builds for the accounting and audi
 
 ## Structure
 
-- `index.html` — the whole site (bio + agent grid)
+- `index.html` — landing page (bio + agent grid)
+- `resume.html` — full résumé
+- `agents/` — one instructions/spec page per agent
 - `styles.css` — shared design language with the [Audit Perspectives](https://gitmaster-max.github.io/audit-perspectives/) site
