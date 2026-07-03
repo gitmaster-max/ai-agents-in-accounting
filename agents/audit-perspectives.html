@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audit Perspectives — Case Study</title>
+<meta name="description" content="Case study of Audit Perspectives: a STORM-style, multi-stakeholder AI agent that runs audit questions through every layer of an engagement team plus external regulators, maps the conflicts, and synthesizes an actionable recommendation.">
+<link rel="canonical" href="https://gitmaster-max.github.io/ai-agents-in-accounting/agents/audit-perspectives.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Audit Perspectives — Case Study">
+<meta property="og:description" content="A STORM-style multi-stakeholder method for audit questions: perspective grid, tension map, synthesis. Live and open source.">
+<meta property="og:url" content="https://gitmaster-max.github.io/ai-agents-in-accounting/agents/audit-perspectives.html">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%238a4a2f'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='38' font-weight='700' fill='%23faf8f4' text-anchor='middle'%3EV%3C/text%3E%3C/svg%3E">
+<script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="kicker" href="../index.html">Vijay Vittal</a>
+    <nav aria-label="Site">
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#agents">Agents</a>
+      <a href="../index.html#method">Method</a>
+      <a href="../resume.html">Résumé</a>
+      <a href="https://github.com/gitmaster-max" target="_blank" rel="noopener">GitHub</a>
+      <button class="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode"><span class="sun" aria-hidden="true">&#9728;</span><span class="moon" aria-hidden="true">&#9790;</span></button>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero">
+    <div class="wrap">
+      <p class="eyebrow">Agent 01 · Case study · Live</p>
+      <h1>Audit Perspectives</h1>
+      <p class="lede">
+        Every audit question sounds different depending on who you ask. Staff worry about the
+        data. Managers worry about the methodology. Partners worry about the defense file.
+        Regulators worry about solvency. Audit Perspectives runs the question through all of
+        them at once — and maps where they disagree.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="https://gitmaster-max.github.io/audit-perspectives/" target="_blank" rel="noopener">Open the live site</a>
+        <a class="btn" href="https://github.com/gitmaster-max/audit-perspectives" target="_blank" rel="noopener">View the repository</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section alt">
+    <div class="wrap">
+      <p class="section-eyebrow">The problem</p>
+      <h2>One question, one pass, one point of view</h2>
+      <p>
+        When an audit team faces a hard question — a judgment-heavy estimate, an unusual
+        transaction, a control that almost works — the answer it gets usually reflects whoever
+        was asked. The staff view never reaches the partner. The regulator's lens never enters
+        the room. The disagreements that matter most stay implicit until review, or worse,
+        until inspection.
+      </p>
+      <p>
+        Audit Perspectives adapts Stanford's STORM method (Synthesis of Topic Outlines through
+        Retrieval and Multi-perspective Question Asking — Shao et al., NAACL 2024) to the audit
+        profession: instead of researching a topic through multiple expert personas, it
+        interrogates an audit question through every stakeholder who has a genuine stake in the
+        answer.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <p class="section-eyebrow">The method</p>
+      <h2>Four stages, from question to recommendation</h2>
+      <div class="stage-list">
+        <div class="stage">
+          <h3><span class="stage-num">1</span> Topic analysis</h3>
+          <p>
+            Classify the question — technical accounting, audit procedure, risk assessment,
+            control, quality and independence, or regulatory — and pin down the industry
+            context, because a reserving question reads differently in health insurance than
+            in banking.
+          </p>
+        </div>
+        <div class="stage">
+          <h3><span class="stage-num">2</span> The perspective grid</h3>
+          <p>
+            Generate a distinct viewpoint from every relevant role. Core audit roles — Staff
+            through Partner, plus quality and independent reviewers — are always present.
+            IT Audit, Tax, and Advisory join when the topic touches their domain. External
+            perspectives — PCAOB, AICPA, financial statement users, investors, and the sector
+            regulator — are always included. Redundant perspectives are eliminated, not padded.
+          </p>
+        </div>
+        <div class="stage">
+          <h3><span class="stage-num">3</span> The tension map</h3>
+          <p>
+            Identify the active conflicts between perspectives and classify each one:
+            operational, risk, regulatory, or incentive-driven. This is the heart of the method —
+            the output isn't a consensus, it's a map of where the room would argue.
+          </p>
+        </div>
+        <div class="stage">
+          <h3><span class="stage-num">4</span> Synthesis</h3>
+          <p>
+            Consolidate into what everyone agrees on, where the views divide, the regulatory
+            exposure, and a recommendation specific enough to act on — the memo you'd actually
+            want before walking into the partner's office.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section alt">
+    <div class="wrap">
+      <p class="section-eyebrow">Worked example</p>
+      <h2>IBNR reserves, four ways</h2>
+      <p>
+        Ask about incurred-but-not-reported reserve testing at a health insurer and the grid
+        splits immediately:
+      </p>
+      <div class="persona-grid">
+        <div class="persona">
+          <span class="persona-label">Internal · Core audit</span>
+          <h3>Staff</h3>
+          <p>Sees the data limitations first — completeness of the claims lag triangles, the inputs nobody upstream wants to talk about.</p>
+        </div>
+        <div class="persona">
+          <span class="persona-label">Internal · Core audit</span>
+          <h3>Manager</h3>
+          <p>Questions whether the methodology is adequate at all — is the development factor approach defensible for this book of business?</p>
+        </div>
+        <div class="persona">
+          <span class="persona-label">Internal · Core audit</span>
+          <h3>Partner</h3>
+          <p>Thinks in terms of audit defense: what does the file need to show if this estimate is challenged two years from now?</p>
+        </div>
+        <div class="persona">
+          <span class="persona-label">External · Regulator</span>
+          <h3>NAIC Regulator</h3>
+          <p>Cares about solvency — whether the reserve protects policyholders, not whether the audit was efficient.</p>
+        </div>
+      </div>
+      <p style="margin-top: 28px;">
+        The tension map then surfaces the load-bearing conflict: the staff's informal concerns
+        about judgment-heavy factors haven't reached partner-level discussion. That's not a
+        modeling insight — it's an engagement-management insight, and it's exactly the kind of
+        thing that single-pass answers miss.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <p class="section-eyebrow">Try it</p>
+      <h2>Live and open source</h2>
+      <p>
+        Audit Perspectives ships as a Claude Code skill: download the skill file, drop it in
+        your skills directory, and invoke it with any audit question. The full method,
+        documentation, and source are public.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="https://gitmaster-max.github.io/audit-perspectives/" target="_blank" rel="noopener">Live site</a>
+        <a class="btn" href="https://github.com/gitmaster-max/audit-perspectives" target="_blank" rel="noopener">Repository</a>
+        <a class="btn" href="../index.html#agents">Back to all agents</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div>
+      <p><strong>Vijay Vittal</strong> — AI &amp; Agents in Accounting and Auditing.</p>
+      <p>&copy; <span data-year>2026</span> · Built by hand, no framework.</p>
+    </div>
+    <ul class="footer-links">
+      <li><a href="../index.html#agents">Agents</a></li>
+      <li><a href="../resume.html">Résumé</a></li>
+      <li><a href="mailto:vijayvittal98@gmail.com">Email</a></li>
+      <li><a href="https://linkedin.com/in/vijayvittals" target="_blank" rel="noopener">LinkedIn</a></li>
+      <li><a href="https://github.com/gitmaster-max" target="_blank" rel="noopener">GitHub</a></li>
+    </ul>
+  </div>
+</footer>
+
+<script src="../site.js"></script>
+</body>
+</html>
