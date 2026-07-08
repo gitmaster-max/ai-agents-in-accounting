@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FuelWeek — Vegetarian Meal Planner</title>
+  <meta name="description" content="FuelWeek: a low-effort vegetarian + dairy meal planner with DAREBEETS macro targets, micronutrient tracking, AI food estimates and recipes." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥗</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>body{margin:0}</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+const { useMemo, useState } = React;
+
+/* ================= FOOD LIBRARY =================
+   Lacto-vegetarian, low/no-cook, India-friendly packaged & fridge-ready foods.
+   Per-serving values (approx). Micros: ca(mg) fe(mg) b12(µg) d(µg) zn(mg) mg(mg) k(mg) vc(mg)
+*/
+const F = (o) => ({ fiber: 0, ca: 0, fe: 0, b12: 0, d: 0, zn: 0, mg: 0, k: 0, vc: 0, ...o });
+
+const BASE_FOODS = [
+  // ---- Fridge / ready to eat (zero cooking) ----
+  F({ id: "gyog", cat: "Fridge · Ready", name: "Greek yogurt cup", serv: "1 cup (90 g)", note: "Top-shelf staple", kcal: 90, p: 8, c: 7, f: 3, ca: 100, k: 140, b12: 0.3 }),
+  F({ id: "curd", cat: "Fridge · Ready", name: "Curd / dahi bowl", serv: "150 g", note: "Probiotic", kcal: 98, p: 5, c: 7, f: 5, ca: 180, b12: 0.4, k: 190 }),
+  F({ id: "milk", cat: "Fridge · Ready", name: "Toned milk", serv: "1 glass (250 ml)", note: "Fortified", kcal: 120, p: 8, c: 12, f: 4, ca: 300, b12: 1.1, d: 1.2, k: 340 }),
+  F({ id: "soym", cat: "Fridge · Ready", name: "Soy milk (fortified)", serv: "200 ml", note: "B12 + calcium", kcal: 90, p: 7, c: 4, f: 4, ca: 250, b12: 0.8, d: 1.5 }),
+  F({ id: "pane", cat: "Fridge · Ready", name: "Paneer cubes (raw)", serv: "100 g", note: "Eat as-is or toss", kcal: 265, p: 18, c: 4, f: 21, ca: 480, zn: 2 }),
+  F({ id: "chee", cat: "Fridge · Ready", name: "Cheese slice", serv: "1 slice (20 g)", kcal: 62, p: 4, c: 1, f: 5, ca: 120 }),
+  F({ id: "chas", cat: "Fridge · Ready", name: "Buttermilk / chaas", serv: "200 ml", note: "Post-lunch", kcal: 40, p: 2.5, c: 4, f: 1.5, ca: 110 }),
+  F({ id: "sprt", cat: "Fridge · Ready", name: "Sprouts pack (moong)", serv: "100 g", note: "Ready salad", kcal: 100, p: 7, c: 17, f: 0.5, fiber: 7, fe: 1.5, vc: 15, k: 260 }),
+  F({ id: "humm", cat: "Fridge · Ready", name: "Hummus + carrot sticks", serv: "100 g + 1 carrot", kcal: 180, p: 6, c: 15, f: 11, fiber: 6, fe: 2, vc: 4, k: 300 }),
+  F({ id: "corn", cat: "Fridge · Ready", name: "Sweet corn cup (steamed)", serv: "100 g", kcal: 96, p: 3.4, c: 21, f: 1.5, fiber: 2.4, mg: 37, k: 270 }),
+  F({ id: "cocw", cat: "Fridge · Ready", name: "Coconut water", serv: "200 ml", note: "Electrolytes", kcal: 38, p: 0.5, c: 9, f: 0, k: 500, mg: 20, vc: 5 }),
+
+  // ---- Pantry snacks (grab & go) ----
+  F({ id: "bana", cat: "Snacks · Grab", name: "Banana", serv: "1 medium", note: "Pre-workout", kcal: 105, p: 1.3, c: 27, f: 0.4, fiber: 3, k: 420, mg: 32, vc: 10 }),
+  F({ id: "appl", cat: "Snacks · Grab", name: "Apple", serv: "1 medium", kcal: 95, p: 0.5, c: 25, f: 0.3, fiber: 4, vc: 8, k: 195 }),
+  F({ id: "date", cat: "Snacks · Grab", name: "Dates", serv: "3 pieces (25 g)", note: "Natural sugar", kcal: 70, p: 0.6, c: 18, f: 0, fiber: 1.7, k: 170, mg: 14 }),
+  F({ id: "chan", cat: "Snacks · Grab", name: "Roasted chana", serv: "40 g", note: "Protein snack", kcal: 150, p: 8, c: 22, f: 3, fiber: 7, fe: 2.5, mg: 45, zn: 1.2 }),
+  F({ id: "almo", cat: "Snacks · Grab", name: "Almonds", serv: "30 g (~23 nuts)", kcal: 174, p: 6, c: 6, f: 15, fiber: 3.5, ca: 80, mg: 80, zn: 1, k: 210 }),
+  F({ id: "waln", cat: "Snacks · Grab", name: "Walnuts", serv: "30 g", note: "Omega-3", kcal: 196, p: 4.5, c: 4, f: 19.5, fiber: 2, mg: 47 }),
+  F({ id: "pbut", cat: "Snacks · Grab", name: "Peanut butter", serv: "2 tbsp (32 g)", kcal: 190, p: 8, c: 7, f: 16, fiber: 2, mg: 50, zn: 0.9, k: 190 }),
+  F({ id: "pbar", cat: "Snacks · Grab", name: "Protein bar (20 g)", serv: "1 bar", note: "e.g. Yoga Bar", kcal: 220, p: 20, c: 22, f: 7, fiber: 4, fe: 2 }),
+
+  // ---- 5–10 min cook (stir, boil, microwave) ----
+  F({ id: "moat", cat: "Quick Cook", name: "Masala oats", serv: "1 pack (40 g)", note: "3-min stir", kcal: 160, p: 5, c: 27, f: 3, fiber: 4, fe: 2, mg: 50 }),
+  F({ id: "musl", cat: "Quick Cook", name: "Muesli + milk", serv: "45 g + 200 ml", note: "Just pour", kcal: 270, p: 11, c: 42, f: 6, fiber: 5, fe: 3, ca: 260, b12: 0.9 }),
+  F({ id: "poha", cat: "Quick Cook", name: "Instant poha", serv: "1 bowl", note: "Add hot water", kcal: 250, p: 5, c: 45, f: 6, fe: 3, fiber: 2 }),
+  F({ id: "upma", cat: "Quick Cook", name: "Instant upma", serv: "1 bowl", note: "Add hot water", kcal: 240, p: 6, c: 40, f: 6, fiber: 3, fe: 2 }),
+  F({ id: "khic", cat: "Quick Cook", name: "Instant khichdi cup", serv: "1 cup", note: "Microwave", kcal: 220, p: 8, c: 38, f: 4, fiber: 5, fe: 2.5 }),
+  F({ id: "brea", cat: "Quick Cook", name: "Whole-wheat bread", serv: "2 slices", note: "Toast + PB", kcal: 140, p: 6, c: 24, f: 2, fiber: 4, fe: 1.6 }),
+  F({ id: "soya", cat: "Quick Cook", name: "Soya chunks (boiled)", serv: "50 g dry", note: "10-min boil, cheap protein", kcal: 175, p: 26, c: 16, f: 0.5, fiber: 6.5, fe: 10, ca: 175, zn: 2.2, mg: 90 }),
+  F({ id: "tofu", cat: "Quick Cook", name: "Tofu, pan-tossed", serv: "100 g", note: "5-min sauté", kcal: 110, p: 12, c: 2, f: 6, ca: 200, fe: 2.5, zn: 1, mg: 35 }),
+  F({ id: "quin", cat: "Quick Cook", name: "Quinoa ready cup", serv: "150 g cooked", note: "Microwave", kcal: 180, p: 6.5, c: 32, f: 3, fiber: 4, mg: 90, fe: 2, zn: 1.5 }),
+
+  // ---- Heat & eat pouches (ready meals) ----
+  F({ id: "dalm", cat: "Heat & Eat", name: "Dal makhani pouch", serv: "1 pouch (300 g)", note: "MTR / ITC", kcal: 380, p: 12, c: 38, f: 19, fiber: 9, fe: 4, k: 480, mg: 60 }),
+  F({ id: "rajc", cat: "Heat & Eat", name: "Rajma chawal meal", serv: "1 pack", note: "Boil-in-bag", kcal: 320, p: 10, c: 55, f: 6, fiber: 8, fe: 3.5, k: 420, mg: 55 }),
+  F({ id: "roti", cat: "Heat & Eat", name: "Frozen multigrain roti", serv: "2 pieces", note: "Tawa 2 min", kcal: 240, p: 6, c: 36, f: 8, fiber: 5, fe: 2 }),
+  F({ id: "pbhu", cat: "Heat & Eat", name: "Paneer bhurji (ready mix)", serv: "100 g paneer", note: "Mix + heat", kcal: 300, p: 19, c: 6, f: 23, ca: 500, zn: 2 }),
+
+  // ---- Supplements ----
+  F({ id: "whey", cat: "Supplements", name: "Whey protein", serv: "1 scoop (30 g)", note: "In water/milk", kcal: 120, p: 24, c: 3, f: 1.5, ca: 140, b12: 0.5 }),
+  F({ id: "crea", cat: "Supplements", name: "Creatine monohydrate", serv: "5 g", note: "Daily, any time", kcal: 0, p: 0, c: 0, f: 0 }),
+  F({ id: "mult", cat: "Supplements", name: "Multivitamin tablet", serv: "1 tab", note: "With a meal", kcal: 0, p: 0, c: 0, f: 0, vc: 40, zn: 5, fe: 9, b12: 1, d: 10, mg: 50, ca: 200 }),
+  F({ id: "omg3", cat: "Supplements", name: "Omega-3 (algae/flax)", serv: "1 capsule", kcal: 10, p: 0, c: 0, f: 1 }),
+  F({ id: "vitd", cat: "Supplements", name: "Vitamin D3 1000 IU", serv: "1 capsule", kcal: 0, p: 0, c: 0, f: 0, d: 25 }),
+  F({ id: "b12t", cat: "Supplements", name: "Vitamin B12 tablet", serv: "1 tab", kcal: 0, p: 0, c: 0, f: 0, b12: 100 }),
+];
+
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const MEALS = ["Breakfast", "Lunch", "Snack", "Dinner"];
+
+/* Daily micro targets (adult male RDA-style) */
+const MICRO_TARGETS = [
+  ["fiber", "Fiber", 30, "g"],
+  ["ca", "Calcium", 1000, "mg"],
+  ["fe", "Iron", 18, "mg"],
+  ["b12", "Vitamin B12", 2.4, "µg"],
+  ["d", "Vitamin D", 15, "µg"],
+  ["zn", "Zinc", 11, "mg"],
+  ["mg", "Magnesium", 400, "mg"],
+  ["k", "Potassium", 3500, "mg"],
+  ["vc", "Vitamin C", 90, "mg"],
+];
+const NUTRIENT_KEYS = ["kcal", "p", "c", "f", "fiber", "ca", "fe", "b12", "d", "zn", "mg", "k", "vc"];
+
+/* DAREBEETS formulas: maintenance = kg × 40; −10% fat loss, +10% muscle gain.
+   Protein 1.6–1.8 g/kg, fat 25% of Calories, carbs = remainder. */
+function computeTargets(profile) {
+  const w = Number(profile.weight) || 0;
+  const maintenance = w * 40;
+  const kcal = Math.round(profile.goal === "gain" ? maintenance * 1.1 : maintenance * 0.9);
+  const p = Math.round(w * (profile.goal === "gain" ? 1.8 : 1.6));
+  const f = Math.round((kcal * 0.25) / 9);
+  const c = Math.max(0, Math.round((kcal - p * 4 - f * 9) / 4));
+  return { maintenance: Math.round(maintenance), kcal, p, f, c };
+}
+
+const QUICK_FILL = {
+  gain: { Breakfast: ["musl", "whey", "bana"], Lunch: ["rajc", "curd", "sprt"], Snack: ["gyog", "almo", "pbar"], Dinner: ["pbhu", "roti", "soya"] },
+  loss: { Breakfast: ["moat", "whey"], Lunch: ["khic", "curd", "sprt"], Snack: ["gyog", "chan", "appl"], Dinner: ["tofu", "roti", "chas"] },
+};
+
+const emptyWeek = () => Object.fromEntries(DAYS.map((d) => [d, Object.fromEntries(MEALS.map((m) => [m, []]))]));
+
+/* ===== Greedy gap-filler: pick foods that best close today's deficits ===== */
+function suggestFixes(totals, targets, foods) {
+  const sim = { ...totals };
+  const picks = [];
+  const candidates = foods.filter((f) => f.kcal > 0 || f.p > 0 || MICRO_TARGETS.some(([k]) => f[k] > 0));
+  for (let i = 0; i < 12; i++) {
+    const room = targets.kcal - sim.kcal;
+    if (room < 60 && sim.p >= targets.p) break;
+    let best = null, bestScore = 0;
+    candidates.forEach((f) => {
+      if (f.kcal > Math.max(room, 0) + 80) return;
+      let s = 0;
+      if (sim.p < targets.p) s += Math.min(f.p, targets.p - sim.p) * 3;
+      MICRO_TARGETS.forEach(([k, , tgt]) => {
+        const gap = Math.max(0, tgt - sim[k]) / tgt;
+        s += Math.min((f[k] || 0) / tgt, gap) * 40;
+      });
+      if (room > 0) s += (Math.min(f.kcal, room) / room) * 12;
+      const rep = picks.filter((x) => x.id === f.id).length;
+      s -= rep * 20;
+      if (s > bestScore) { bestScore = s; best = f; }
+    });
+    if (!best || bestScore <= 2) break;
+    picks.push({ id: best.id });
+    NUTRIENT_KEYS.forEach((k) => (sim[k] += best[k] || 0));
+  }
+  const counts = {};
+  picks.forEach(({ id }) => (counts[id] = (counts[id] || 0) + 1));
+  return { picks: Object.entries(counts).map(([id, qty]) => ({ id, qty })), projected: sim };
+}
+
+/* ===== Claude API helpers (AI features) =====
+   On GitHub Pages there is no claude.ai proxy, so calls go directly from the
+   browser to the Anthropic API using the visitor's own key, stored ONLY in
+   this browser's localStorage. */
+const KEY_STORAGE = "fw_anthropic_key";
+const getApiKey = () => { try { return localStorage.getItem(KEY_STORAGE) || ""; } catch (e) { return ""; } };
+const NO_KEY_MSG = "AI features need your Anthropic API key — click \u{1F511} AI setup in the header (the key is stored only in this browser).";
+const BAD_KEY_MSG = "Your API key was rejected — recheck it in \u{1F511} AI setup.";
+
+async function askClaudeJSON(prompt, useSearch) {
+  const apiKey = getApiKey();
+  if (!apiKey) { const e = new Error(NO_KEY_MSG); e.code = "NO_KEY"; throw e; }
+  const body = {
+    model: "claude-sonnet-4-6",
+    max_tokens: 1000,
+    messages: [{ role: "user", content: prompt }],
+  };
+  if (useSearch) body.tools = [{ type: "web_search_20260209", name: "web_search" }];
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const e = new Error(res.status === 401 ? BAD_KEY_MSG : "API error " + res.status);
+    e.code = res.status === 401 ? "BAD_KEY" : "API";
+    throw e;
+  }
+  const data = await res.json();
+  const text = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
+  const clean = text.replace(/```json|```/g, "").trim();
+  const m = clean.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error("No JSON in response");
+  return JSON.parse(m[0]);
+}
+
+const T = {
+  ink: "#152820", soft: "#5C7266", line: "#DCE6DE", bg: "#F3F7F4", card: "#FFFFFF",
+  green: "#1D5C3F", greenSoft: "#E6F1EA", mango: "#F5A623", mangoSoft: "#FDF1DC", red: "#C64B3C",
+};
+
+function Bar({ label, val, target, unit, over }) {
+  const pct = target > 0 ? Math.min(100, (val / target) * 100) : 0;
+  const isOver = val > target * 1.05;
+  const color = over && isOver ? T.red : pct >= 90 ? T.green : T.mango;
+  return (
+    <div className="mb-2">
+      <div className="flex justify-between text-xs" style={{ color: T.soft }}>
+        <span>{label}</span>
+        <span style={{ color: T.ink, fontWeight: 600 }}>
+          {Math.round(val * 10) / 10}
+          <span style={{ color: T.soft, fontWeight: 400 }}> / {target} {unit}</span>
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full mt-1" style={{ background: T.line }}>
+        <div className="h-1.5 rounded-full" style={{ width: pct + "%", background: color, transition: "width .3s" }} />
+      </div>
+    </div>
+  );
+}
+
+function Spinner({ text }) {
+  return (
+    <div className="flex flex-col items-center gap-3 py-10">
+      <div className="w-8 h-8 rounded-full animate-spin"
+        style={{ border: `3px solid ${T.line}`, borderTopColor: T.green }} />
+      <div className="text-sm" style={{ color: T.soft }}>{text}</div>
+    </div>
+  );
+}
+
+function MealPlanner() {
+  const [profile, setProfile] = useState({ age: 28, height: 175, weight: 70, fatPct: 18, goal: "gain" });
+  const [plan, setPlan] = useState(emptyWeek);
+  const [day, setDay] = useState("Monday");
+  const [cat, setCat] = useState("All");
+  const [q, setQ] = useState("");
+  const [selFood, setSelFood] = useState(null);
+  const [addTo, setAddTo] = useState("Breakfast");
+  const [dragId, setDragId] = useState(null);
+  const [overMeal, setOverMeal] = useState(null);
+  const [grocery, setGrocery] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // API key setup (GitHub Pages: bring your own key, stored in localStorage)
+  const [keyModal, setKeyModal] = useState(false);
+  const [keyInput, setKeyInput] = useState("");
+  const [hasKey, setHasKey] = useState(() => !!getApiKey());
+
+  // Custom foods (AI-estimated)
+  const [customFoods, setCustomFoods] = useState([]);
+  const [addFoodModal, setAddFoodModal] = useState(false);
+  const [newFood, setNewFood] = useState({ name: "", serv: "" });
+  const [estimating, setEstimating] = useState(false);
+  const [estimated, setEstimated] = useState(null);
+  const [estError, setEstError] = useState("");
+
+  // Gap filler
+  const [fixModal, setFixModal] = useState(false);
+  const [fixResult, setFixResult] = useState(null);
+
+  // Recipe page
+  const [page, setPage] = useState("planner"); // planner | recipe
+  const [recipeFood, setRecipeFood] = useState(null);
+  const [recipe, setRecipe] = useState(null);
+  const [recipeLoading, setRecipeLoading] = useState(false);
+  const [recipeError, setRecipeError] = useState("");
+
+  const allFoods = useMemo(() => [...BASE_FOODS, ...customFoods], [customFoods]);
+  const foodMap = useMemo(() => Object.fromEntries(allFoods.map((f) => [f.id, f])), [allFoods]);
+  const cats = useMemo(() => ["All", ...Array.from(new Set(allFoods.map((f) => f.cat)))], [allFoods]);
+
+  const targets = useMemo(() => computeTargets(profile), [profile]);
+  const hM = (Number(profile.height) || 0) / 100;
+  const bmi = hM > 0 ? (Number(profile.weight) || 0) / (hM * hM) : 0;
+
+  const saveKey = () => {
+    try {
+      if (keyInput.trim()) localStorage.setItem(KEY_STORAGE, keyInput.trim());
+      else localStorage.removeItem(KEY_STORAGE);
+    } catch (e) {}
+    setHasKey(!!getApiKey());
+    setKeyModal(false);
+  };
+  const clearKey = () => {
+    try { localStorage.removeItem(KEY_STORAGE); } catch (e) {}
+    setKeyInput("");
+    setHasKey(false);
+  };
+
+  const addFood = (meal, id, d = day) =>
+    setPlan((p) => {
+      const items = p[d][meal];
+      const i = items.findIndex((x) => x.id === id);
+      const next = i >= 0 ? items.map((x, j) => (j === i ? { ...x, qty: x.qty + 1 } : x)) : [...items, { id, qty: 1 }];
+      return { ...p, [d]: { ...p[d], [meal]: next } };
+    });
+  const setQty = (meal, id, delta) =>
+    setPlan((p) => ({
+      ...p,
+      [day]: { ...p[day], [meal]: p[day][meal].map((x) => (x.id === id ? { ...x, qty: x.qty + delta } : x)).filter((x) => x.qty > 0) },
+    }));
+  const clearDay = () => setPlan((p) => ({ ...p, [day]: Object.fromEntries(MEALS.map((m) => [m, []])) }));
+  const quickFill = () =>
+    setPlan((p) => ({ ...p, [day]: Object.fromEntries(MEALS.map((m) => [m, QUICK_FILL[profile.goal][m].map((id) => ({ id, qty: 1 }))])) }));
+
+  const sumDay = (d) => {
+    const t = Object.fromEntries(NUTRIENT_KEYS.map((k) => [k, 0]));
+    MEALS.forEach((m) =>
+      plan[d][m].forEach(({ id, qty }) => {
+        const f = foodMap[id];
+        if (f) NUTRIENT_KEYS.forEach((k) => (t[k] += (f[k] || 0) * qty));
+      })
+    );
+    return t;
+  };
+  const dayTotals = useMemo(() => sumDay(day), [plan, day, foodMap]);
+  const dayKcal = (d) => Math.round(sumDay(d).kcal);
+  const dayMet = (d) => {
+    const t = sumDay(d);
+    return t.kcal >= targets.kcal * 0.95 && t.kcal <= targets.kcal * 1.1 && t.p >= targets.p * 0.9;
+  };
+
+  const groceryList = useMemo(() => {
+    const count = {};
+    DAYS.forEach((d) => MEALS.forEach((m) => plan[d][m].forEach(({ id, qty }) => (count[id] = (count[id] || 0) + qty))));
+    const byCat = {};
+    Object.entries(count).forEach(([id, n]) => {
+      const f = foodMap[id];
+      if (f) (byCat[f.cat] = byCat[f.cat] || []).push({ ...f, n });
+    });
+    return byCat;
+  }, [plan, foodMap]);
+
+  const copyGrocery = () => {
+    const text = Object.entries(groceryList)
+      .map(([c, items]) => c + "\n" + items.map((i) => `  • ${i.name} — ${i.n} × ${i.serv}`).join("\n"))
+      .join("\n\n");
+    const done = () => { setCopied(true); setTimeout(() => setCopied(false), 1500); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done).catch(done);
+    else done();
+  };
+
+  /* ---- Fill gaps ---- */
+  const openFix = () => {
+    setFixResult(suggestFixes(dayTotals, targets, allFoods.filter((f) => f.cat !== "Supplements" || ["mult", "vitd", "b12t"].includes(f.id))));
+    setFixModal(true);
+  };
+  const applyFix = () => {
+    if (!fixResult) return;
+    setPlan((p) => {
+      let next = { ...p, [day]: { ...p[day] } };
+      MEALS.forEach((m) => (next[day][m] = [...next[day][m]]));
+      const mealKcal = Object.fromEntries(MEALS.map((m) => [m, next[day][m].reduce((s, x) => s + ((foodMap[x.id] || {}).kcal || 0) * x.qty, 0)]));
+      fixResult.picks.forEach(({ id, qty }) => {
+        // put each pick in the currently lightest meal
+        const meal = MEALS.reduce((a, b) => (mealKcal[a] <= mealKcal[b] ? a : b));
+        const items = next[day][meal];
+        const i = items.findIndex((x) => x.id === id);
+        if (i >= 0) items[i] = { ...items[i], qty: items[i].qty + qty };
+        else items.push({ id, qty });
+        mealKcal[meal] += ((foodMap[id] || {}).kcal || 0) * qty;
+      });
+      return next;
+    });
+    setFixModal(false);
+  };
+
+  /* ---- AI: estimate custom food ---- */
+  const estimateFood = async () => {
+    if (!newFood.name.trim()) return;
+    setEstimating(true); setEstError(""); setEstimated(null);
+    try {
+      const j = await askClaudeJSON(
+        `You are a nutrition database. Estimate per-serving nutrition for this food: "${newFood.name}", serving size: "${newFood.serv || "1 standard serving"}". Indian brands/context are fine. Respond with ONLY raw JSON, no markdown fences, no commentary, exactly these numeric fields:\n{"kcal":0,"p":0,"c":0,"f":0,"fiber":0,"ca":0,"fe":0,"b12":0,"d":0,"zn":0,"mg":0,"k":0,"vc":0,"serv":"normalized serving text"}\nUnits: kcal; grams for p,c,f,fiber; mg for ca,fe,zn,mg,k,vc; micrograms for b12,d.`
+      );
+      setEstimated(j);
+    } catch (e) {
+      setEstError(e.code === "NO_KEY" || e.code === "BAD_KEY" ? e.message : "Couldn't estimate that food. Try rephrasing (e.g. 'Amul lassi, 200 ml').");
+    } finally { setEstimating(false); }
+  };
+  const saveCustomFood = () => {
+    if (!estimated) return;
+    const id = "cust_" + Date.now();
+    setCustomFoods((c) => [...c, F({
+      id, cat: "My Foods", name: newFood.name.trim(), serv: estimated.serv || newFood.serv || "1 serving", note: "AI estimate",
+      kcal: +estimated.kcal || 0, p: +estimated.p || 0, c: +estimated.c || 0, f: +estimated.f || 0,
+      fiber: +estimated.fiber || 0, ca: +estimated.ca || 0, fe: +estimated.fe || 0, b12: +estimated.b12 || 0,
+      d: +estimated.d || 0, zn: +estimated.zn || 0, mg: +estimated.mg || 0, k: +estimated.k || 0, vc: +estimated.vc || 0,
+    })]);
+    setAddFoodModal(false); setNewFood({ name: "", serv: "" }); setEstimated(null);
+  };
+
+  /* ---- AI: fetch recipe ---- */
+  const openRecipe = async (food) => {
+    setRecipeFood(food); setPage("recipe"); setRecipe(null); setRecipeError(""); setRecipeLoading(true);
+    try {
+      const j = await askClaudeJSON(
+        `Search the web for one simple lacto-vegetarian (no eggs, no meat) recipe for "${food.name}". Prefer recipes under 20 minutes for a beginner cook in India. Then respond with ONLY raw JSON, no markdown fences, no commentary:\n{"title":"","sourceUrl":"","totalTime":"","servings":"","ingredients":["..."],"steps":["..."]}\nKeep ingredients as short single lines with quantities, and steps concise (max 8 steps). sourceUrl must be the real recipe page URL you found.`,
+        true
+      );
+      setRecipe(j);
+    } catch (e) {
+      setRecipeError(e.code === "NO_KEY" || e.code === "BAD_KEY"
+        ? e.message + " Then come back and tap the recipe button again."
+        : "Couldn't fetch a recipe right now. Try again in a moment.");
+    } finally { setRecipeLoading(false); }
+  };
+
+  const shownFoods = allFoods.filter((f) => (cat === "All" || f.cat === cat) && f.name.toLowerCase().includes(q.toLowerCase()));
+  const sel = selFood ? foodMap[selFood] : null;
+
+  const inputStyle = {
+    background: T.card, border: `1px solid ${T.line}`, color: T.ink,
+    borderRadius: 8, padding: "6px 8px", width: "100%", fontSize: 13, outline: "none",
+  };
+  const modalBg = { background: "rgba(20,40,32,.45)", zIndex: 50 };
+
+  /* ================= RECIPE PAGE ================= */
+  if (page === "recipe") {
+    const jtrLink = recipe && recipe.sourceUrl ? "https://www.justtherecipe.com/?url=" + encodeURIComponent(recipe.sourceUrl) : null;
+    return (
+      <div style={{ background: T.bg, color: T.ink, minHeight: "100vh", fontFamily: "'Sora','Segoe UI',system-ui,sans-serif" }}>
+        <div style={{ background: T.card, borderBottom: `1px solid ${T.line}` }} className="px-4 py-3 flex items-center gap-3">
+          <button onClick={() => setPage("planner")} className="text-sm font-semibold px-3 py-1.5 rounded-lg"
+            style={{ border: `1px solid ${T.line}` }}>← Back to planner</button>
+          <div>
+            <div style={{ fontWeight: 800 }}>🍳 Recipe · {recipeFood ? recipeFood.name : ""}</div>
+            <div className="text-xs" style={{ color: T.soft }}>Clean, no-fluff view — just ingredients and steps</div>
+          </div>
+        </div>
+        <div className="max-w-2xl mx-auto p-4">
+          {recipeLoading && <Spinner text="Searching the web for a simple recipe…" />}
+          {recipeError && (
+            <div className="rounded-xl p-4 text-sm" style={{ background: T.mangoSoft, border: `1px solid #F3DDB2` }}>
+              {recipeError}
+              <button onClick={() => openRecipe(recipeFood)} className="ml-3 font-bold underline">Retry</button>
+            </div>
+          )}
+          {recipe && (
+            <div className="rounded-2xl p-5" style={{ background: T.card, border: `1px solid ${T.line}` }}>
+              <div className="text-lg font-extrabold">{recipe.title || (recipeFood && recipeFood.name)}</div>
+              <div className="text-xs mt-1 mb-4" style={{ color: T.soft }}>
+                {recipe.totalTime ? "⏱ " + recipe.totalTime : ""}{recipe.servings ? "  ·  🍽 " + recipe.servings : ""}
+              </div>
+              <div className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: T.green }}>Ingredients</div>
+              <div className="mb-4">
+                {(recipe.ingredients || []).map((ing, i) => (
+                  <label key={i} className="flex items-start gap-2 py-1 text-sm cursor-pointer">
+                    <input type="checkbox" className="mt-0.5" style={{ accentColor: T.green }} />
+                    <span>{ing}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: T.green }}>Steps</div>
+              <ol className="mb-5">
+                {(recipe.steps || []).map((s, i) => (
+                  <li key={i} className="flex gap-3 py-1.5 text-sm">
+                    <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                      style={{ background: T.greenSoft, color: T.green }}>{i + 1}</span>
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ol>
+              <div className="flex flex-wrap gap-2">
+                {recipe.sourceUrl && (
+                  <a href={recipe.sourceUrl} target="_blank" rel="noreferrer"
+                    className="text-xs font-semibold px-3 py-2 rounded-lg"
+                    style={{ border: `1px solid ${T.line}`, color: T.ink }}>Open original recipe ↗</a>
+                )}
+                {jtrLink && (
+                  <a href={jtrLink} target="_blank" rel="noreferrer"
+                    className="text-xs font-semibold px-3 py-2 rounded-lg"
+                    style={{ background: T.green, color: "#fff" }}>Open in JustTheRecipe ↗</a>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  /* ================= PLANNER PAGE ================= */
+  return (
+    <div style={{ background: T.bg, color: T.ink, minHeight: "100vh", fontFamily: "'Sora','Segoe UI',system-ui,sans-serif" }}>
+      <style>{`::-webkit-scrollbar{height:6px;width:6px}::-webkit-scrollbar-thumb{background:${T.line};border-radius:3px}`}</style>
+
+      {/* ===== Header: profile & targets ===== */}
+      <div style={{ background: T.card, borderBottom: `1px solid ${T.line}` }} className="px-4 py-3">
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 20, letterSpacing: "-0.02em" }}>
+              Fuel<span style={{ color: T.green }}>Week</span>
+            </div>
+            <div className="text-xs" style={{ color: T.soft }}>Vegetarian + dairy · low-effort meal planner</div>
+          </div>
+          <div className="flex flex-wrap gap-2 items-end ml-auto">
+            {[["age", "Age"], ["height", "Height cm"], ["weight", "Weight kg"], ["fatPct", "Fat %"]].map(([k, lb]) => (
+              <label key={k} className="text-xs" style={{ color: T.soft }}>
+                {lb}
+                <input type="number" value={profile[k]} style={{ ...inputStyle, width: 74, marginTop: 2 }}
+                  onChange={(e) => setProfile((p) => ({ ...p, [k]: e.target.value }))} />
+              </label>
+            ))}
+            <div className="flex rounded-lg overflow-hidden" style={{ border: `1px solid ${T.line}` }}>
+              {[["gain", "Muscle gain"], ["loss", "Fat loss"]].map(([g, lb]) => (
+                <button key={g} onClick={() => setProfile((p) => ({ ...p, goal: g }))}
+                  className="px-3 py-2 text-xs font-semibold"
+                  style={{ background: profile.goal === g ? T.green : T.card, color: profile.goal === g ? "#fff" : T.soft }}>
+                  {lb}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => { setKeyInput(getApiKey()); setKeyModal(true); }}
+              className="px-3 py-2 text-xs font-semibold rounded-lg"
+              title="AI features (food estimates, recipes) use your own Anthropic API key, stored only in this browser"
+              style={{ border: `1px solid ${hasKey ? T.green : T.line}`, color: hasKey ? T.green : T.soft, background: T.card }}>
+              🔑 AI {hasKey ? "✓" : "setup"}
+            </button>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 mt-3 text-xs">
+          {[
+            ["BMI", bmi ? bmi.toFixed(1) : "–"],
+            ["Maintenance", targets.maintenance + " kcal"],
+            ["Daily budget", targets.kcal + " kcal", true],
+            ["Protein", targets.p + " g"],
+            ["Carbs", targets.c + " g"],
+            ["Fat", targets.f + " g"],
+          ].map(([lb, v, hot]) => (
+            <div key={lb} className="px-2.5 py-1.5 rounded-lg"
+              style={{ background: hot ? T.mangoSoft : T.greenSoft, border: `1px solid ${hot ? "#F3DDB2" : T.line}` }}>
+              <span style={{ color: T.soft }}>{lb} </span>
+              <span style={{ fontWeight: 700 }}>{v}</span>
+            </div>
+          ))}
+          <div className="px-2.5 py-1.5 rounded-lg" style={{ color: T.soft }}>
+            Formula: weight × 40, {profile.goal === "gain" ? "+10% for muscle gain" : "−10% for fat loss"} (DAREBEETS)
+          </div>
+        </div>
+      </div>
+
+      {/* ===== Body: 3 panels ===== */}
+      <div className="flex flex-col lg:flex-row gap-3 p-3">
+        {/* Left: days */}
+        <div className="flex lg:flex-col gap-1.5 overflow-x-auto lg:w-40 shrink-0">
+          {DAYS.map((d) => {
+            const on = d === day, k = dayKcal(d);
+            const met = k > 0 && dayMet(d);
+            return (
+              <button key={d} onClick={() => setDay(d)}
+                className="px-3 py-2 rounded-xl text-left shrink-0"
+                style={{ background: on ? T.green : T.card, color: on ? "#fff" : T.ink, border: `1px solid ${on ? T.green : T.line}`, minWidth: 100 }}>
+                <div className="text-sm font-bold flex items-center gap-1">
+                  {d.slice(0, 3)} {k > 0 && <span title={met ? "Targets met" : "Under target"}>{met ? "✅" : "🟡"}</span>}
+                </div>
+                <div className="text-xs" style={{ color: on ? "#CFE5D8" : T.soft }}>{k > 0 ? k + " kcal" : "empty"}</div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Middle: meal slots */}
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <div className="font-bold">{day}</div>
+            <button onClick={openFix} className="ml-auto text-xs font-semibold px-3 py-1.5 rounded-lg"
+              style={{ background: T.green, color: "#fff" }}>
+              🎯 Fill gaps
+            </button>
+            <button onClick={quickFill} className="text-xs font-semibold px-3 py-1.5 rounded-lg"
+              style={{ background: T.mango, color: "#3D2A05" }}>
+              ⚡ Quick-fill
+            </button>
+            <button onClick={clearDay} className="text-xs px-3 py-1.5 rounded-lg"
+              style={{ border: `1px solid ${T.line}`, color: T.soft, background: T.card }}>
+              Clear
+            </button>
+          </div>
+          {MEALS.map((meal) => (
+            <div key={meal}
+              onDragOver={(e) => { e.preventDefault(); setOverMeal(meal); }}
+              onDragLeave={() => setOverMeal((m) => (m === meal ? null : m))}
+              onDrop={(e) => { e.preventDefault(); if (dragId) addFood(meal, dragId); setDragId(null); setOverMeal(null); }}
+              className="rounded-xl p-3 mb-2"
+              style={{ background: overMeal === meal ? T.greenSoft : T.card, border: `2px dashed ${overMeal === meal ? T.green : T.line}`, transition: "all .15s" }}>
+              <div className="flex justify-between items-center mb-1.5">
+                <div className="text-sm font-bold" style={{ color: T.green }}>{meal}</div>
+                <div className="text-xs" style={{ color: T.soft }}>
+                  {Math.round(plan[day][meal].reduce((s, x) => s + ((foodMap[x.id] || {}).kcal || 0) * x.qty, 0))} kcal
+                </div>
+              </div>
+              {plan[day][meal].length === 0 && (
+                <div className="text-xs py-2" style={{ color: T.soft }}>Drag a food here, or tap ＋ in the food list →</div>
+              )}
+              <div className="flex flex-wrap gap-1.5">
+                {plan[day][meal].map(({ id, qty }) => {
+                  const f = foodMap[id];
+                  if (!f) return null;
+                  return (
+                    <div key={id} onClick={() => setSelFood(id)}
+                      className="flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-full text-xs cursor-pointer"
+                      style={{ background: T.greenSoft, border: `1px solid ${T.line}` }}>
+                      <span className="font-semibold">{f.name}</span>
+                      <span style={{ color: T.soft }}>{Math.round(f.kcal * qty)} kcal</span>
+                      <span className="flex items-center rounded-full" style={{ background: T.card }}>
+                        <button onClick={(e) => { e.stopPropagation(); setQty(meal, id, -1); }} className="px-1.5 font-bold" style={{ color: T.red }}>−</button>
+                        <span className="font-bold">{qty}</span>
+                        <button onClick={(e) => { e.stopPropagation(); setQty(meal, id, 1); }} className="px-1.5 font-bold" style={{ color: T.green }}>＋</button>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Right: food library */}
+        <div className="lg:w-80 shrink-0">
+          <div className="rounded-xl p-3" style={{ background: T.card, border: `1px solid ${T.line}` }}>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="font-bold text-sm">Food library</div>
+              <button onClick={() => setAddFoodModal(true)} className="ml-auto text-xs font-semibold px-2.5 py-1.5 rounded-lg"
+                style={{ border: `1px solid ${T.green}`, color: T.green }}>＋ Add food</button>
+              <button onClick={() => setGrocery(true)} className="text-xs font-semibold px-2.5 py-1.5 rounded-lg"
+                style={{ background: T.green, color: "#fff" }}>🛒 List</button>
+            </div>
+            <input placeholder="Search foods…" value={q} onChange={(e) => setQ(e.target.value)} style={inputStyle} />
+            <div className="flex gap-1.5 overflow-x-auto py-2">
+              {cats.map((c) => (
+                <button key={c} onClick={() => setCat(c)} className="px-2.5 py-1 rounded-full text-xs shrink-0 font-semibold"
+                  style={{ background: cat === c ? T.ink : T.bg, color: cat === c ? "#fff" : T.soft, border: `1px solid ${cat === c ? T.ink : T.line}` }}>
+                  {c.replace(" · ", " ")}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-1.5 text-xs mb-2" style={{ color: T.soft }}>
+              Tap ＋ adds to
+              <select value={addTo} onChange={(e) => setAddTo(e.target.value)} style={{ ...inputStyle, width: "auto", padding: "3px 6px" }}>
+                {MEALS.map((m) => <option key={m}>{m}</option>)}
+              </select>
+            </div>
+            <div className="overflow-y-auto pr-1" style={{ maxHeight: 420 }}>
+              {shownFoods.map((f) => (
+                <div key={f.id} draggable
+                  onDragStart={() => setDragId(f.id)}
+                  onDragEnd={() => { setDragId(null); setOverMeal(null); }}
+                  onClick={() => setSelFood(f.id)}
+                  className="flex items-center gap-1.5 p-2 mb-1.5 rounded-lg cursor-grab active:cursor-grabbing"
+                  style={{ background: selFood === f.id ? T.greenSoft : T.bg, border: `1px solid ${selFood === f.id ? T.green : T.line}` }}>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-bold truncate">{f.name}</div>
+                    <div className="text-xs truncate" style={{ color: T.soft }}>
+                      {f.serv} · {f.kcal} kcal · P{f.p}{f.note ? " · " + f.note : ""}
+                    </div>
+                  </div>
+                  {f.cat !== "Supplements" && (
+                    <button onClick={(e) => { e.stopPropagation(); openRecipe(f); }}
+                      className="w-7 h-7 rounded-full shrink-0" title="See recipe"
+                      style={{ border: `1px solid ${T.line}`, background: T.card }}>🍳</button>
+                  )}
+                  <button onClick={(e) => { e.stopPropagation(); addFood(addTo, f.id); }}
+                    className="w-7 h-7 rounded-full font-bold shrink-0"
+                    style={{ background: T.green, color: "#fff" }} title={"Add to " + addTo}>＋</button>
+                </div>
+              ))}
+              {shownFoods.length === 0 && <div className="text-xs py-4 text-center" style={{ color: T.soft }}>No foods match.</div>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ===== Bottom: food detail + day totals ===== */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 pt-0">
+        <div className="rounded-xl p-4" style={{ background: T.card, border: `1px solid ${T.line}` }}>
+          <div className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: T.soft }}>Selected food</div>
+          {!sel ? (
+            <div className="text-sm py-6 text-center" style={{ color: T.soft }}>
+              Click any food (in the plan or the library) to see its macro & micro breakdown.
+            </div>
+          ) : (
+            <React.Fragment>
+              <div className="flex items-center gap-2">
+                <div className="font-bold">{sel.name}</div>
+                {sel.cat !== "Supplements" && (
+                  <button onClick={() => openRecipe(sel)} className="text-xs font-semibold px-2 py-1 rounded-lg"
+                    style={{ border: `1px solid ${T.green}`, color: T.green }}>🍳 See recipe →</button>
+                )}
+              </div>
+              <div className="text-xs mb-3" style={{ color: T.soft }}>{sel.serv}{sel.note ? " · " + sel.note : ""} · {sel.cat}</div>
+              <div className="grid grid-cols-4 gap-2 mb-3">
+                {[["kcal", sel.kcal, "kcal"], ["Protein", sel.p, "g"], ["Carbs", sel.c, "g"], ["Fat", sel.f, "g"]].map(([lb, v, u]) => (
+                  <div key={lb} className="rounded-lg p-2 text-center" style={{ background: T.greenSoft }}>
+                    <div className="font-bold">{v}<span className="text-xs font-normal" style={{ color: T.soft }}> {u}</span></div>
+                    <div className="text-xs" style={{ color: T.soft }}>{lb}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-3 gap-x-4 text-xs">
+                {MICRO_TARGETS.map(([k, lb, , u]) => (
+                  <div key={k} className="flex justify-between py-1" style={{ borderBottom: `1px solid ${T.line}` }}>
+                    <span style={{ color: T.soft }}>{lb}</span>
+                    <span className="font-semibold">{sel[k] || 0} {u}</span>
+                  </div>
+                ))}
+              </div>
+            </React.Fragment>
+          )}
+        </div>
+
+        <div className="rounded-xl p-4" style={{ background: T.card, border: `1px solid ${T.line}` }}>
+          <div className="flex items-center mb-2">
+            <div className="text-xs font-bold uppercase tracking-wide" style={{ color: T.soft }}>{day} totals vs your targets</div>
+            <button onClick={openFix} className="ml-auto text-xs font-semibold px-2 py-1 rounded-lg"
+              style={{ border: `1px solid ${T.green}`, color: T.green }}>🎯 Fill gaps</button>
+          </div>
+          <Bar label="Calories" val={dayTotals.kcal} target={targets.kcal} unit="kcal" over />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4">
+            <Bar label="Protein" val={dayTotals.p} target={targets.p} unit="g" />
+            <Bar label="Carbs" val={dayTotals.c} target={targets.c} unit="g" />
+            <Bar label="Fat" val={dayTotals.f} target={targets.f} unit="g" over />
+          </div>
+          <div className="text-xs font-bold uppercase tracking-wide mt-3 mb-1" style={{ color: T.soft }}>Micronutrients</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+            {MICRO_TARGETS.map(([k, lb, tgt, u]) => (
+              <Bar key={k} label={lb} val={dayTotals[k]} target={tgt} unit={u} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 pb-4 text-xs" style={{ color: T.soft }}>
+        Targets follow the DAREBEETS calorie & macro method (weight × 40, ±10% by goal; fat ≈ 25% of Calories; protein 1.6–1.8 g/kg).
+        Nutrition values (including AI-estimated foods) are estimates — check pack labels. Not medical advice.
+      </div>
+
+      {/* ===== API key modal ===== */}
+      {keyModal && (
+        <div className="fixed inset-0 flex items-center justify-center p-4" style={modalBg} onClick={() => setKeyModal(false)}>
+          <div className="rounded-2xl p-5 w-full max-w-md" style={{ background: T.card }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center mb-2">
+              <div className="font-bold">🔑 AI setup</div>
+              <button className="ml-auto text-sm px-3 py-1 rounded-lg" style={{ border: `1px solid ${T.line}` }} onClick={() => setKeyModal(false)}>✕</button>
+            </div>
+            <div className="text-xs mb-3" style={{ color: T.soft }}>
+              The planner works fully without a key. The two AI features — "＋ Add food" nutrition estimates and 🍳 recipe search — call the
+              Anthropic API directly from your browser and need your own API key (get one at console.anthropic.com).
+              It's saved <b>only in this browser's local storage</b> — it's never sent anywhere except to Anthropic.
+            </div>
+            <label className="text-xs block mb-3" style={{ color: T.soft }}>
+              Anthropic API key
+              <input type="password" value={keyInput} onChange={(e) => setKeyInput(e.target.value)}
+                placeholder="sk-ant-..." style={{ ...inputStyle, marginTop: 2 }} />
+            </label>
+            <div className="flex gap-2">
+              {hasKey && (
+                <button onClick={clearKey} className="flex-1 py-2 rounded-xl text-sm font-semibold"
+                  style={{ border: `1px solid ${T.line}`, color: T.red }}>Remove key</button>
+              )}
+              <button onClick={saveKey} className="flex-1 py-2 rounded-xl text-sm font-bold" style={{ background: T.green, color: "#fff" }}>
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== Fill-gaps modal ===== */}
+      {fixModal && fixResult && (
+        <div className="fixed inset-0 flex items-center justify-center p-4" style={modalBg} onClick={() => setFixModal(false)}>
+          <div className="rounded-2xl p-5 w-full max-w-md overflow-y-auto" style={{ background: T.card, maxHeight: "85vh" }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center mb-2">
+              <div className="font-bold">🎯 Fill today's gaps</div>
+              <button className="ml-auto text-sm px-3 py-1 rounded-lg" style={{ border: `1px solid ${T.line}` }} onClick={() => setFixModal(false)}>✕</button>
+            </div>
+            {fixResult.picks.length === 0 ? (
+              <div className="text-sm py-6 text-center" style={{ color: T.soft }}>
+                {day} already meets its calorie & protein budget — nothing to add. 🎉
+              </div>
+            ) : (
+              <React.Fragment>
+                <div className="text-xs mb-3" style={{ color: T.soft }}>
+                  Suggested additions to hit your DAREBEETS calorie, protein and micronutrient targets. They'll be slotted into your lightest meals.
+                </div>
+                {fixResult.picks.map(({ id, qty }) => {
+                  const f = foodMap[id];
+                  return (
+                    <div key={id} className="flex items-center gap-2 p-2 mb-1.5 rounded-lg" style={{ background: T.greenSoft }}>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold">{qty > 1 ? qty + " × " : ""}{f.name}</div>
+                        <div className="text-xs" style={{ color: T.soft }}>{f.serv} · {f.kcal * qty} kcal · P{Math.round(f.p * qty)}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="text-xs font-bold uppercase tracking-wide mt-3 mb-1" style={{ color: T.soft }}>After adding</div>
+                <Bar label="Calories" val={fixResult.projected.kcal} target={targets.kcal} unit="kcal" over />
+                <Bar label="Protein" val={fixResult.projected.p} target={targets.p} unit="g" />
+                <button onClick={applyFix} className="w-full py-2.5 rounded-xl font-bold text-sm mt-2" style={{ background: T.green, color: "#fff" }}>
+                  Add these to {day}
+                </button>
+              </React.Fragment>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ===== Add-food modal (AI estimate) ===== */}
+      {addFoodModal && (
+        <div className="fixed inset-0 flex items-center justify-center p-4" style={modalBg} onClick={() => !estimating && setAddFoodModal(false)}>
+          <div className="rounded-2xl p-5 w-full max-w-md overflow-y-auto" style={{ background: T.card, maxHeight: "85vh" }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center mb-3">
+              <div className="font-bold">＋ Add a food (AI-estimated)</div>
+              <button className="ml-auto text-sm px-3 py-1 rounded-lg" style={{ border: `1px solid ${T.line}` }} onClick={() => setAddFoodModal(false)}>✕</button>
+            </div>
+            <label className="text-xs block mb-2" style={{ color: T.soft }}>
+              Food name (brand ok)
+              <input value={newFood.name} onChange={(e) => setNewFood((n) => ({ ...n, name: e.target.value }))}
+                placeholder="e.g. Amul lassi, Britannia cheese cube, ragi dosa" style={{ ...inputStyle, marginTop: 2 }} />
+            </label>
+            <label className="text-xs block mb-3" style={{ color: T.soft }}>
+              Serving size (optional)
+              <input value={newFood.serv} onChange={(e) => setNewFood((n) => ({ ...n, serv: e.target.value }))}
+                placeholder="e.g. 200 ml / 1 piece / 100 g" style={{ ...inputStyle, marginTop: 2 }} />
+            </label>
+            {estimating ? (
+              <Spinner text="Estimating nutrition with AI…" />
+            ) : estimated ? (
+              <React.Fragment>
+                <div className="grid grid-cols-4 gap-2 mb-2">
+                  {[["kcal", estimated.kcal, "kcal"], ["Protein", estimated.p, "g"], ["Carbs", estimated.c, "g"], ["Fat", estimated.f, "g"]].map(([lb, v, u]) => (
+                    <div key={lb} className="rounded-lg p-2 text-center" style={{ background: T.greenSoft }}>
+                      <div className="font-bold text-sm">{v}<span className="text-xs font-normal" style={{ color: T.soft }}> {u}</span></div>
+                      <div className="text-xs" style={{ color: T.soft }}>{lb}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-3 gap-x-3 text-xs mb-3">
+                  {MICRO_TARGETS.map(([k, lb, , u]) => (
+                    <div key={k} className="flex justify-between py-0.5">
+                      <span style={{ color: T.soft }}>{lb}</span>
+                      <span className="font-semibold">{estimated[k] || 0} {u}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={estimateFood} className="flex-1 py-2 rounded-xl text-sm font-semibold" style={{ border: `1px solid ${T.line}` }}>Re-estimate</button>
+                  <button onClick={saveCustomFood} className="flex-1 py-2 rounded-xl text-sm font-bold" style={{ background: T.green, color: "#fff" }}>Add to library</button>
+                </div>
+              </React.Fragment>
+            ) : (
+              <React.Fragment>
+                {estError && <div className="text-xs mb-2 p-2 rounded-lg" style={{ background: T.mangoSoft }}>{estError}</div>}
+                <button onClick={estimateFood} disabled={!newFood.name.trim()}
+                  className="w-full py-2.5 rounded-xl font-bold text-sm"
+                  style={{ background: newFood.name.trim() ? T.green : T.line, color: "#fff" }}>
+                  ✨ Estimate nutrition with AI
+                </button>
+              </React.Fragment>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ===== Grocery modal ===== */}
+      {grocery && (
+        <div className="fixed inset-0 flex items-center justify-center p-4" style={modalBg} onClick={() => setGrocery(false)}>
+          <div className="rounded-2xl p-5 w-full max-w-md overflow-y-auto" style={{ background: T.card, maxHeight: "80vh" }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center mb-3">
+              <div className="font-bold">🛒 Grocery list — whole week</div>
+              <button className="ml-auto text-sm px-3 py-1 rounded-lg" style={{ border: `1px solid ${T.line}` }} onClick={() => setGrocery(false)}>✕</button>
+            </div>
+            {Object.keys(groceryList).length === 0 ? (
+              <div className="text-sm py-6 text-center" style={{ color: T.soft }}>
+                Plan some meals first — the list builds itself from your week.
+              </div>
+            ) : (
+              <React.Fragment>
+                {Object.entries(groceryList).map(([c, items]) => (
+                  <div key={c} className="mb-3">
+                    <div className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: T.green }}>{c}</div>
+                    {items.map((i) => (
+                      <label key={i.id} className="flex items-center gap-2 py-1 text-sm cursor-pointer">
+                        <input type="checkbox" style={{ accentColor: T.green }} />
+                        <span className="font-semibold">{i.name}</span>
+                        <span className="ml-auto text-xs" style={{ color: T.soft }}>{i.n} × {i.serv}</span>
+                      </label>
+                    ))}
+                  </div>
+                ))}
+                <button onClick={copyGrocery} className="w-full py-2.5 rounded-xl font-bold text-sm"
+                  style={{ background: copied ? T.mango : T.green, color: copied ? "#3D2A05" : "#fff" }}>
+                  {copied ? "Copied ✓" : "Copy list to clipboard"}
+                </button>
+              </React.Fragment>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<MealPlanner />);
+  </script>
+</body>
+</html>
